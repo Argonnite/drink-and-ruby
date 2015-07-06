@@ -50,21 +50,21 @@ class ListNode
 end
 
 
-#def branchOut(curNode,myWords)
-#  @first = myWords.pop
-#if(@first == "jumped")
-#  exit
-#puts @first
-#  @a=ListNode.new(@first)
-#  @second = myWords.pop
-#puts @second
-#  @b=ListNode.new(@second)
-#  curNode.setNextListNode(@a)
-#  curNode.setNextListNode(@b)
-#  branchOut(@a,myWords)
-#exit
-#  branchOut(@b,myWords)
-#end
+def branchOut(curNode,myWords)
+  first = myWords.pop
+  if first != nil
+    a=ListNode.new(first)
+    curNode.setNextListNode(a)
+    branchOut(a,myWords)
+  end
+
+  second = myWords.pop
+  if second != nil
+    b=ListNode.new(second)
+    curNode.setNextListNode(b)
+    branchOut(b,myWords)
+  end
+end
 
 
 
@@ -73,17 +73,16 @@ end
 
 someText = String.new(str="The quick brown fox jumped over the lazy dog.")
 puts(someText);
-puts(someText.split[3])
-myWords = someText.split;
-puts(myWords[4])
-puts myWords.size
-myShuffle = myWords.shuffle
-puts(myShuffle[4])
+#puts(someText.split[3])
+#myWords = someText.split;
+#puts(myWords[4])
+#puts myWords.size
+#myShuffle = myWords.shuffle
+#puts(myShuffle[4])
+#myWords = myShuffle.dup
+##rootNode = ListNode.new(myWords.pop)
 
 
-
-myWords = myShuffle.dup
-
-rootNode = ListNode.new(myWords.pop)
-
-branchOut(rootNode,myWords)
+txtAry = someText.split
+rootNode = ListNode.new(txtAry.pop)
+branchOut(rootNode,txtAry)
