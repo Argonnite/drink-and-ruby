@@ -1,0 +1,323 @@
+$ curl https://blockchain.info/unspent?active=1Cdid9KFAaatwczBwBttQcwXYCpvK8h7FK
+
+Example 2-2. Response to the lookup
+
+{
+
+        "unspent_outputs":[
+
+                {
+                        "tx_hash":"186f9f998a5...2836dd734d2804fe65fa35779",
+                        "tx_index":104810202,
+                        "tx_output_n": 0,
+                        "script":"76a9147f9b1a7fb68d60c536c2fd8aeaa53a8f3cc025a888ac",
+                        "value": 10000000,
+                        "value_hex": "00989680",
+                        "confirmations":0
+                }
+
+        ]
+}
+
+
+$ bitcoind
+Error: To use the "-server" option, you must set a rpcpassword in the configuration file:
+/home/ubuntu/.bitcoin/bitcoin.conf
+It is recommended you use the following random password:
+rpcuser=bitcoinrpc
+rpcpassword=2XA4DuKNCbtZXsBQRRNDEwEY2nM6M4H9Tx5dFjoAVVbK
+
+$ bitcoin-cli encryptwallet my_pw
+bitcoin-cli walletpassphrase foo 360
+
+
+$ bitcoin-cli backupwallet wallet.backup
+$
+
+Now, to restore the backup file, use the importwallet command. If your wallet is locked, you will need to unlock it first (see walletpassphrase in the preceding section) in order to import the backup file:
+
+$ bitcoin-cli importwallet wallet.backup
+$
+
+The dumpwallet command can be used to dump the wallet into a text file that is human-readable:
+
+$ bitcoin-cli dumpwallet wallet.txt
+
+listtransactions
+Commands: gettransaction, getrawtransaction, decoderawtransaction
+
+Commands: getblock, getblockhash
+
+Commands: listunspent, gettxout, createrawtransaction, decoderawtransaction, signrawtransaction, sendrawtransaction
+
+$ bitcoind getnewaddress
+1J7mdg5rbQyUHENYdx39WVWK7fsLpEoXZy
+$ bitcoind dumpprivkey 1J7mdg5rbQyUHENYdx39WVWK7fsLpEoXZy
+KxFC1jmwwCoACiCAWZ3eXa96mBM6tb3TYzGmf6YwgdGWZgawvrtJ
+
+Python 3.4.0 (default, Mar 30 2014, 19:23:13)
+[GCC 4.2.1 Compatible Apple LLVM 5.1 (clang-503.0.38)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> p = 115792089237316195423570985008687907853269984665640564039457584007908834671663
+>>> x = 55066263022277343669578718895168534326250603453777594175500187360389116729240
+>>> y = 32670510020758816978083085130507043184471273380659243275938904335757337482424
+>>> (x ** 3 + 7 - y**2) % p
+0
+
+
+
+
+
+Starting with the public key K, we compute the SHA256 hash and then compute the RIPEMD160 hash of the result, producing a 160-bit (20-byte) number:
+Bitcoin Addresses
+
+Bitcoin addresses are almost always presented to users in an encoding called “Base58Check” (see Base58 and Base58Check Encoding), 
+
+Example 4-1. bitcoin’s Base58 alphabet
+
+123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz
+
+
+
+
+
+To convert data (a number) into a Base58Check format, we first add a prefix to the data, called the “version byte,” which serves to easily identify the type of data that is encoded. For example, in the case of a bitcoin address the prefix is zero (0x00 in hex), whereas the prefix used when encoding a private key is 128 (0x80 in hex). A list of common version prefixes is shown in Table 4-1.
+
+Next, we compute the “double-SHA” checksum, meaning we apply the SHA256 hash-algorithm twice on the previous result (prefix and data):
+
+checksum = SHA256(SHA256(prefix+data))
+
+From the resulting 32-byte hash (hash-of-a-hash), we take only the first four bytes. These four bytes serve as the error-checking code, or checksum. The checksum is concatenated (appended) to the end.
+
+The result is composed of three items: a prefix, the data, and a checksum. This result is encoded using the Base58 alphabet described previously. Figure 4-6 illustrates the Base58Check encoding process.
+
+
+
+
+
+Example 4-2. Creating a Base58Check-encoded bitcoin address from a private key
+
+#include <bitcoin/bitcoin.hpp>
+
+int main()
+{
+    // Private secret key.
+    bc::ec_secret secret = bc::decode_hash(
+        "038109007313a5807b2eccc082c8c3fbb988a973cacf1a7df9ce725c31b14776");
+    // Get public key.
+    bc::ec_point public_key = bc::secret_to_public_key(secret);
+    std::cout << "Public key: " << bc::encode_hex(public_key) << std::endl;
+
+    // Create Bitcoin address.
+    // Normally you can use:
+    //   bc::payment_address payaddr;
+    //   bc::set_public_key(payaddr, public_key);
+    //   const std::string address = payaddr.encoded();
+
+    // Compute hash of public key for P2PKH address.
+    const bc::short_hash hash = bc::bitcoin_short_hash(public_key);
+
+    bc::data_chunk unencoded_address;
+    // Reserve 25 bytes
+    //   [ version:1  ]
+    //   [ hash:20    ]
+    //   [ checksum:4 ]
+    unencoded_address.reserve(25);
+    // Version byte, 0 is normal BTC address (P2PKH).
+    unencoded_address.push_back(0);
+    // Hash data
+    bc::extend_data(unencoded_address, hash);
+    // Checksum is computed by hashing data, and adding 4 bytes from hash.
+    bc::append_checksum(unencoded_address);
+    // Finally we must encode the result in Bitcoin's base58 encoding
+    assert(unencoded_address.size() == 25);
+    const std::string address = bc::encode_base58(unencoded_address);
+
+    std::cout << "Address: " << address << std::endl;
+    return 0;
+}
+
+
+
+
+
+
+Example 4-4. Key and address generation and formatting with the pybitcointools library
+
+import bitcoin
+
+# Generate a random private key
+valid_private_key = False
+while not valid_private_key:
+    private_key = bitcoin.random_key()
+    decoded_private_key = bitcoin.decode_privkey(private_key, 'hex')
+    valid_private_key =  0 < decoded_private_key < bitcoin.N
+
+print "Private Key (hex) is: ", private_key
+print "Private Key (decimal) is: ", decoded_private_key
+
+# Convert private key to WIF format
+wif_encoded_private_key = bitcoin.encode_privkey(decoded_private_key, 'wif')
+print "Private Key (WIF) is: ", wif_encoded_private_key
+
+# Add suffix "01" to indicate a compressed private key
+compressed_private_key = private_key + '01'
+print "Private Key Compressed (hex) is: ", compressed_private_key
+
+# Generate a WIF format from the compressed private key (WIF-compressed)
+wif_compressed_private_key = bitcoin.encode_privkey(
+    bitcoin.decode_privkey(compressed_private_key, 'hex'), 'wif')
+print "Private Key (WIF-Compressed) is: ", wif_compressed_private_key
+
+# Multiply the EC generator point G with the private key to get a public key point
+public_key = bitcoin.base10_multiply(bitcoin.G, decoded_private_key)
+print "Public Key (x,y) coordinates is:", public_key
+
+# Encode as hex, prefix 04
+hex_encoded_public_key = bitcoin.encode_pubkey(public_key,'hex')
+print "Public Key (hex) is:", hex_encoded_public_key
+
+# Compress public key, adjust prefix depending on whether y is even or odd
+(public_key_x, public_key_y) = public_key
+if (public_key_y % 2) == 0:
+    compressed_prefix = '02'
+else:
+    compressed_prefix = '03'
+hex_compressed_public_key = compressed_prefix + bitcoin.encode(public_key_x, 16)
+print "Compressed Public Key (hex) is:", hex_compressed_public_key
+
+# Generate bitcoin address from public key
+print "Bitcoin Address (b58check) is:", bitcoin.pubkey_to_address(public_key)
+
+# Generate compressed bitcoin address from compressed public key
+print "Compressed Bitcoin Address (b58check) is:", \
+    bitcoin.pubkey_to_address(hex_compressed_public_key)
+
+
+
+
+
+
+
+
+Example 4-6 is another example, using the Python ECDSA library for the elliptic curve math and without using any specialized bitcoin libraries.
+Example 4-6. A script demonstrating elliptic curve math used for bitcoin keys
+
+import ecdsa
+import random
+from ecdsa.util import string_to_number, number_to_string
+
+# secp256k1, http://www.oid-info.com/get/1.3.132.0.10
+_p = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2FL
+_r = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141L
+_b = 0x0000000000000000000000000000000000000000000000000000000000000007L
+_a = 0x0000000000000000000000000000000000000000000000000000000000000000L
+_Gx = 0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798L
+_Gy = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8L
+curve_secp256k1 = ecdsa.ellipticcurve.CurveFp(_p, _a, _b)
+generator_secp256k1 = ecdsa.ellipticcurve.Point(curve_secp256k1, _Gx, _Gy, _r)
+oid_secp256k1 = (1, 3, 132, 0, 10)
+SECP256k1 = ecdsa.curves.Curve("SECP256k1", curve_secp256k1, generator_secp256k1, oid_secp256k1)
+ec_order = _r
+
+curve = curve_secp256k1
+generator = generator_secp256k1
+
+def random_secret():
+    random_char = lambda: chr(random.randint(0, 255))
+    convert_to_int = lambda array: int("".join(array).encode("hex"), 16)
+    byte_array = [random_char() for i in range(32)]
+    return convert_to_int(byte_array)
+
+def get_point_pubkey(point):
+    if point.y() & 1:
+        key = '03' + '%064x' % point.x()
+    else:
+        key = '02' + '%064x' % point.x()
+    return key.decode('hex')
+
+def get_point_pubkey_uncompressed(point):
+    key = '04' + \
+          '%064x' % point.x() + \
+          '%064x' % point.y()
+    return key.decode('hex')
+
+# Generate a new private key.
+secret = random_secret()
+print "Secret: ", secret
+
+# Get the public key point.
+point = secret * generator
+print "EC point:", point
+
+print "BTC public key:", get_point_pubkey(point).encode("hex")
+
+# Given the point (x, y) we can create the object using:
+point1 = ecdsa.ellipticcurve.Point(curve, point.x(), point.y(), ec_order)
+assert point1 == point
+
+
+
+
+
+Example 5-1. A script that calls the blockchain.info API to find the UTXO related to an address
+
+# get unspent outputs from blockchain API
+
+import json
+import requests
+
+# example address
+address = '1Dorian4RoXcnBv9hnQ4Y2C1an6NJ4UrjX'
+
+# The API URL is https://blockchain.info/unspent?active=<address>
+# It returns a JSON object with a list "unspent_outputs", containing UTXO, like this:
+#{      "unspent_outputs":[
+#   {
+#     "tx_hash":"ebadfaa92f1fd29e2fe296eda702c48bd11ffd52313e986e99ddad9084062167",
+#     "tx_index":51919767,
+#     "tx_output_n": 1,
+#     "script":"76a9148c7e252f8d64b0b6e313985915110fcfefcf4a2d88ac",
+#     "value": 8000000,
+#     "value_hex": "7a1200",
+#     "confirmations":28691
+#   },
+# ...
+#]}
+
+resp = requests.get('https://blockchain.info/unspent?active=%s' % address)
+utxo_set = json.loads(resp.text)["unspent_outputs"]
+
+for utxo in utxo_set:
+    print "%s:%d - %ld Satoshis" % (utxo['tx_hash'], utxo['tx_output_n'], utxo['value'])
+
+
+
+
+$ bitcoin-cli getpeerinfo
+
+
+
+
+
+
+
+
+$ bitcoind getblock 000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f
+
+{
+    "hash" : "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+    "confirmations" : 308321,
+    "size" : 285,
+    "height" : 0,
+    "version" : 1,
+    "merkleroot" : "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+    "tx" : [
+        "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+    ],
+    "time" : 1231006505,
+    "nonce" : 2083236893,
+    "bits" : "1d00ffff",
+    "difficulty" : 1.00000000,
+    "nextblockhash" : "00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048"
+}
