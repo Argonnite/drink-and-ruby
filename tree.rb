@@ -24,10 +24,10 @@ def insert(x)
     list << @left
     list << @right
     loop do
-      node = list.shift
-      if node.left == nil
+      node = list.shift		#loose typing
+      if node.left == nil	#not encapsulated (exposed via attr_accessor)
         node.insert(x)
-        break
+        break			#node doesn't decon on exiting scope
       else
         list << node.left
       end
